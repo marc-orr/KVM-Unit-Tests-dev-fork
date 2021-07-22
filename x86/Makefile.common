@@ -48,7 +48,8 @@ ifeq ($(TARGET_EFI),y)
 
 %.so: %.o $(FLATLIBS) $(SRCDIR)/x86/efi/elf_x86_64_efi.lds $(cstart.o)
 	$(LD) -T $(SRCDIR)/x86/efi/elf_x86_64_efi.lds $(EFI_LDFLAGS) -o $@ \
-		$(filter %.o, $^) $(FLATLIBS) $(EFI_LIBS)
+		$(EFI_LIBS_PATH)/crt0-efi-x86_64.o $(filter %.o, $^) \
+		$(FLATLIBS) $(EFI_LIBS)
 	@chmod a-x $@
 
 %.efi: %.so
