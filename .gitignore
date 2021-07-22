@@ -3,7 +3,9 @@ tags
 *.a
 *.d
 *.o
+*.so
 *.flat
+*.efi
 *.elf
 .pc
 patches
@@ -24,3 +26,4 @@ cscope.*
 /api/dirty-log-perf
 /s390x/*.bin
 /s390x/snippets/*/*.gbin
+/efi-tests/*

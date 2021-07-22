@@ -28,6 +28,9 @@ erratatxt="$srcdir/errata.txt"
 host_key_document=
 page_size=
 earlycon=
+target_efi=
+efi_include_path=
+efi_libs_path=
 
 usage() {
     cat <<-EOF
@@ -69,6 +72,11 @@ usage() {
 	               pl011,mmio32,ADDR
 	                           Specify a PL011 compatible UART at address ADDR. Supported
 	                           register stride is 32 bit only.
+	    --target-efi           Boot and run from UEFI
+	    --efi-include-path     Path to GNU-EFI headers, e.g. "/usr/include/efi"
+	    --efi-libs-path        Path to GNU-EFI libraries, e.g. "/usr/lib/". This dir should
+	                           contain 3 files from GNU-EFI: crt0-efi-x86_64.o, libefi.a,
+				   and libgnuefi.a
 EOF
     exit 1
 }
@@ -132,6 +140,15 @@ while [[ "$1" = -* ]]; do
 	    ;;
 	--earlycon)
 	    earlycon="$arg"
+	    ;;
+	--target-efi)
+	    target_efi=y
+	    ;;
+	--efi-include-path)
+	    efi_include_path="$arg"
+	    ;;
+	--efi-libs-path)
+	    efi_libs_path="$arg"
 	    ;;
 	--help)
 	    usage
@@ -341,6 +358,9 @@ U32_LONG_FMT=$u32_long
 WA_DIVIDE=$wa_divide
 GENPROTIMG=${GENPROTIMG-genprotimg}
 HOST_KEY_DOCUMENT=$host_key_document
+TARGET_EFI=$target_efi
+EFI_INCLUDE_PATH=$efi_include_path
+EFI_LIBS_PATH=$efi_libs_path
 EOF
 if [ "$arch" = "arm" ] || [ "$arch" = "arm64" ]; then
     echo "TARGET=$target" >> config.mak

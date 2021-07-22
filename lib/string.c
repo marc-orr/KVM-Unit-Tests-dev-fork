@@ -100,6 +100,8 @@ char *strstr(const char *s1, const char *s2)
     return NULL;
 }
 
+#ifndef TARGET_EFI
+/* GNU-EFI already defines memset and memcpy */
 void *memset(void *s, int c, size_t n)
 {
     size_t i;
@@ -122,6 +124,7 @@ void *memcpy(void *dest, const void *src, size_t n)
 
     return dest;
 }
+#endif /* TARGET_EFI */
 
 int memcmp(const void *s1, const void *s2, size_t n)
 {

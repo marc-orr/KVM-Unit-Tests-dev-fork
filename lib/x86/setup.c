@@ -9,6 +9,7 @@
 #include "fwcfg.h"
 #include "alloc_phys.h"
 #include "argv.h"
+#include "asm/setup.h"
 
 extern char edata;
 
@@ -117,6 +118,19 @@ void setup_multiboot(struct mbi_bootinfo *bi)
 	initrd = (char *)(uintptr_t) mods->start;
 	initrd_size = mods->end - mods->start;
 }
+
+#ifdef TARGET_EFI
+
+void setup_efi(void)
+{
+	reset_apic();
+	mask_pic_interrupts();
+	enable_apic();
+	enable_x2apic();
+	smp_init();
+}
+
+#endif /* TARGET_EFI */
 
 void setup_libcflat(void)
 {
