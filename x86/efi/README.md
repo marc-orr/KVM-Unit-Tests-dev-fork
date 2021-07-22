@@ -1,4 +1,46 @@
-# EFI Startup Code and Linker Script
+# Build KVM-Unit-Tests with GNU-EFI
+
+## Introduction
+
+This dir provides code to build KVM-Unit-Tests with GNU-EFI and run the test
+cases with QEMU and UEFI.
+
+### Install dependencies
+
+The following dependencies should be installed:
+
+- [GNU-EFI](https://sourceforge.net/projects/gnu-efi): to build test cases as
+  EFI applications
+- [UEFI firmware](https://github.com/tianocore/edk2): to run test cases in QEMU
+
+### Build with GNU-EFI
+
+To build with GNU-EFI, do:
+
+    ./configure --target-efi
+    make
+
+Building UEFI tests requires the
+[GNU-EFI](https://sourceforge.net/projects/gnu-efi) library: the Makefile
+searches GNU-EFI headers under `/usr/include/efi` and static libraries under
+`/usr/lib/` by default. These paths can be overridden by `./configure` flags
+`efi-include-path` and `efi-libs-path`.
+
+### Run test cases with UEFI
+
+To run a test case with UEFI:
+
+    ./x86/efi/run ./x86/dummy.efi
+
+By default the runner script loads the UEFI firmware `/usr/share/ovmf/OVMF.fd`;
+please install UEFI firmware to this path, or specify the correct path through
+the env variable `EFI_UEFI`:
+
+    EFI_UEFI=/path/to/OVMF.fd ./x86/efi/run ./x86/dummy.efi
+
+## Code structure
+
+### Code from GNU-EFI
 
 This dir contains a linker script copied from
 [GNU-EFI](https://sourceforge.net/projects/gnu-efi/):
@@ -23,3 +65,8 @@ above-mentioned files in its build process:
 
 More details can be found in `GNU-EFI/README.gnuefi`, section "Building
 Relocatable Binaries".
+
+### Startup code for KVM-Unit-Tests in UEFI
+
+This dir also contains KVM-Unit-Tests startup code in UEFI:
+   - efistart64.S: startup code for KVM-Unit-Tests in UEFI

@@ -17,6 +17,8 @@ in this directory.  Test images are created in ./ARCH/\*.flat
 
 NOTE: GCC cross-compiler is required for [build on macOS](README.macOS.md).
 
+To build with UEFI, check [build and run with UEFI](./x86/efi/README.md).
+
 ## Standalone tests
 
 The tests can be built as standalone.  To create and use standalone tests do:
@@ -53,6 +55,10 @@ To select an accelerator, for example "kvm", "hvf" or "tcg", specify the
 ACCEL=name environment variable:
 
     ACCEL=kvm ./x86-run ./x86/msr.flat
+
+## Running the tests with UEFI
+
+Check [build and run with UEFI](./x86/efi/README.md).
 
 # Tests configuration file
 
