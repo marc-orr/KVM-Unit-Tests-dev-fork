@@ -165,10 +165,20 @@ void setup_multiboot(struct mbi_bootinfo *bi)
 
 /* From x86/efi/efistart64.S */
 extern void load_idt(void);
+extern void load_gdt_tss(size_t tss_offset);
+
+static void setup_gdt_tss(void)
+{
+	size_t tss_offset;
+
+	tss_offset = setup_tss();
+	load_gdt_tss(tss_offset);
+}
 
 void setup_efi(void)
 {
 	reset_apic();
+	setup_gdt_tss();
 	setup_idt();
 	load_idt();
 	mask_pic_interrupts();
