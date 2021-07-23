@@ -1,8 +1,6 @@
 #ifndef _X86_DESC_H_
 #define _X86_DESC_H_
 
-#include <setjmp.h>
-
 void setup_idt(void);
 void setup_alt_stack(void);
 
@@ -226,9 +224,6 @@ void unhandled_exception(struct ex_regs *regs, bool cpu);
 
 bool test_for_exception(unsigned int ex, void (*trigger_func)(void *data),
 			void *data);
-void __set_exception_jmpbuf(jmp_buf *addr);
-#define set_exception_jmpbuf(jmpbuf) \
-	(setjmp(jmpbuf) ? : (__set_exception_jmpbuf(&(jmpbuf)), 0))
 
 static inline void *get_idt_addr(idt_entry_t *entry)
 {

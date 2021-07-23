@@ -38,6 +38,7 @@
 #include "msr.h"
 #include "smp.h"
 #include "apic.h"
+#include "setjmp.h"
 
 u64 *bsp_vmxon_region;
 struct vmcs *vmcs_root;
