@@ -124,10 +124,54 @@ void setup_multiboot(struct mbi_bootinfo *bi)
 
 /* From x86/efi/efistart64.S */
 extern void load_idt(void);
+extern void load_gdt_tss(size_t tss_offset);
+extern phys_addr_t tss_descr;
+extern phys_addr_t ring0stacktop;
+extern gdt_entry_t gdt64[];
+extern size_t ring0stacksize;
+
+void setup_gdt_tss()
+{
+	gdt_entry_t *tss_lo, *tss_hi;
+	tss64_t *curr_tss;
+	phys_addr_t curr_tss_addr;
+	u32 id;
+	size_t tss_offset;
+	size_t pre_tss_entries;
+
+	/* Get APIC ID, see also x86/cstart64.S:load_tss */
+	id = apic_id();
+
+	/* Get number of GDT entries before TSS-related GDT entry */
+	pre_tss_entries = (size_t)((u8 *)&(tss_descr) - (u8 *)gdt64) / sizeof(gdt_entry_t);
+
+	/* Each TSS descriptor takes up 2 GDT entries */
+	tss_offset = (pre_tss_entries + id * 2) * sizeof(gdt_entry_t);
+	tss_lo = &(gdt64[pre_tss_entries + id * 2 + 0]);
+	tss_hi = &(gdt64[pre_tss_entries + id * 2 + 1]);
+
+	/* Runtime address of current TSS */
+	curr_tss_addr = (((phys_addr_t)&tss) + (phys_addr_t)(id * sizeof(tss64_t)));
+
+	/* Use runtime address for ring0stacktop, see also x86/cstart64.S:tss */
+	curr_tss = (tss64_t *)curr_tss_addr;
+	curr_tss->rsp0 = (u64)((u8*)&ring0stacktop - id * ring0stacksize);
+
+	/* Update TSS descriptors */
+	tss_lo->limit_low = sizeof(tss64_t);
+	tss_lo->base_low = (u16)(curr_tss_addr & 0xffff);
+	tss_lo->base_middle = (u8)((curr_tss_addr >> 16) & 0xff);
+	tss_lo->base_high = (u8)((curr_tss_addr >> 24) & 0xff);
+	tss_hi->limit_low = (u16)((curr_tss_addr >> 32) & 0xffff);
+	tss_hi->base_low = (u16)((curr_tss_addr >> 48) & 0xffff);
+
+	load_gdt_tss(tss_offset);
+}
 
 void setup_efi(void)
 {
 	reset_apic();
+	setup_gdt_tss();
 	setup_idt();
 	load_idt();
 	mask_pic_interrupts();
