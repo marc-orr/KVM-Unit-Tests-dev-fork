@@ -3,6 +3,10 @@
 #include "processor.h"
 #include <setjmp.h>
 
+void __set_exception_jmpbuf(jmp_buf *addr);
+#define set_exception_jmpbuf(jmpbuf) \
+	(setjmp(jmpbuf) ? : (__set_exception_jmpbuf(&(jmpbuf)), 0))
+
 #ifndef __x86_64__
 __attribute__((regparm(1)))
 #endif
