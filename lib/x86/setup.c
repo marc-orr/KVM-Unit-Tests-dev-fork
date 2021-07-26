@@ -167,6 +167,41 @@ void setup_multiboot(struct mbi_bootinfo *bi)
 extern void load_idt(void);
 extern void load_gdt_tss(size_t tss_offset);
 
+static efi_status_t setup_memory_allocator(efi_bootinfo_t *efi_bootinfo)
+{
+	int i;
+	unsigned long free_mem_pages = 0;
+	unsigned long free_mem_start = 0;
+	struct efi_boot_memmap *map = &(efi_bootinfo->mem_map);
+	efi_memory_desc_t *buffer = *map->map;
+	efi_memory_desc_t *d = NULL;
+
+	/*
+	 * The 'buffer' contains multiple descriptors that describe memory
+	 * regions maintained by UEFI. This code records the largest free
+	 * EFI_CONVENTIONAL_MEMORY region which will be used to set up the
+	 * memory allocator, so that the memory allocator can work in the
+	 * largest free continuous memory region.
+	 */
+	for (i = 0; i < *(map->map_size); i += *(map->desc_size)) {
+		d = (efi_memory_desc_t *)(&((u8 *)buffer)[i]);
+		if (d->type == EFI_CONVENTIONAL_MEMORY) {
+			if (free_mem_pages < d->num_pages) {
+				free_mem_pages = d->num_pages;
+				free_mem_start = d->phys_addr;
+			}
+		}
+	}
+
+	if (free_mem_pages == 0) {
+		return EFI_OUT_OF_RESOURCES;
+	}
+
+	phys_alloc_init(free_mem_start, free_mem_pages << EFI_PAGE_SHIFT);
+
+	return EFI_SUCCESS;
+}
+
 static void setup_gdt_tss(void)
 {
 	size_t tss_offset;
@@ -175,8 +210,10 @@ static void setup_gdt_tss(void)
 	load_gdt_tss(tss_offset);
 }
 
-void setup_efi(void)
+efi_status_t setup_efi(efi_bootinfo_t *efi_bootinfo)
 {
+	efi_status_t status;
+
 	reset_apic();
 	setup_gdt_tss();
 	setup_idt();
@@ -185,6 +222,22 @@ void setup_efi(void)
 	enable_apic();
 	enable_x2apic();
 	smp_init();
+
+	status = setup_memory_allocator(efi_bootinfo);
+	if (status != EFI_SUCCESS) {
+		printf("Failed to set up memory allocator: ");
+		switch (status) {
+		case EFI_OUT_OF_RESOURCES:
+			printf("No free memory region\n");
+			break;
+		default:
+			printf("Unknown error\n");
+			break;
+		}
+		return status;
+	}
+
+	return EFI_SUCCESS;
 }
 
 #endif /* TARGET_EFI */
