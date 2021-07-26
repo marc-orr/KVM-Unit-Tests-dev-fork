@@ -30,9 +30,10 @@ efi_status_t efi_get_memory_map(struct efi_boot_memmap *map)
 	efi_memory_desc_t *m = NULL;
 	efi_status_t status;
 	unsigned long key = 0, map_size = 0, desc_size = 0;
+	u32 desc_ver;
 
 	status = efi_bs_call(get_memory_map, &map_size,
-			     NULL, &key, &desc_size, NULL);
+			     NULL, &key, &desc_size, &desc_ver);
 	if (status != EFI_BUFFER_TOO_SMALL || map_size == 0)
 		goto out;
 
@@ -49,12 +50,13 @@ efi_status_t efi_get_memory_map(struct efi_boot_memmap *map)
 
 	/* Get the map. */
 	status = efi_bs_call(get_memory_map, &map_size,
-			     m, &key, &desc_size, NULL);
+			     m, &key, &desc_size, &desc_ver);
 	if (status != EFI_SUCCESS) {
 		efi_free_pool(m);
 		goto out;
 	}
 
+	*map->desc_ver = desc_ver;
 	*map->desc_size = desc_size;
 	*map->map_size = map_size;
 	*map->key_ptr = key;
@@ -71,17 +73,60 @@ efi_status_t efi_exit_boot_services(void *handle, struct efi_boot_memmap *map)
 efi_status_t efi_main(efi_handle_t handle, efi_system_table_t *sys_tab)
 {
 	int ret;
+	efi_status_t status;
+	efi_bootinfo_t efi_bootinfo;
 
 	efi_system_table = sys_tab;
 
+	/* Memory map struct values */
+	efi_memory_desc_t *map = NULL;
+	unsigned long map_size = 0, desc_size = 0, key = 0, buff_size = 0;
+	u32 desc_ver;
+
+	/* Set up efi_bootinfo */
+	efi_bootinfo.mem_map.map = &map;
+	efi_bootinfo.mem_map.map_size = &map_size;
+	efi_bootinfo.mem_map.desc_size = &desc_size;
+	efi_bootinfo.mem_map.desc_ver = &desc_ver;
+	efi_bootinfo.mem_map.key_ptr = &key;
+	efi_bootinfo.mem_map.buff_size = &buff_size;
+
+	/* Get EFI memory map */
+	status = efi_get_memory_map(&efi_bootinfo.mem_map);
+	if (status != EFI_SUCCESS) {
+		printf("Failed to get memory map\n");
+		goto efi_main_error;
+	}
+
+	/* 
+	 * Exit EFI boot services, let kvm-unit-tests take full control of the
+	 * guest
+	 */
+	status = efi_exit_boot_services(handle, &efi_bootinfo.mem_map);
+	if (status != EFI_SUCCESS) {
+		printf("Failed to exit boot services\n");
+		goto efi_main_error;
+	}
+
 	/* Set up arch-specific resources */
-	setup_efi();
+	status = setup_efi(&efi_bootinfo);
+	if (status != EFI_SUCCESS) {
+		printf("Failed to set up arch-specific resources\n");
+		goto efi_main_error;
+	}
 
 	/* Run the test case */
 	ret = main(__argc, __argv, __environ);
 
 	/* Shutdown the guest VM */
 	efi_rs_call(reset_system, EFI_RESET_SHUTDOWN, ret, 0, NULL);
+
+	/* Unreachable */
+	return EFI_UNSUPPORTED;
+
+efi_main_error:
+	/* Shutdown the guest with error EFI status */
+	efi_rs_call(reset_system, EFI_RESET_SHUTDOWN, status, 0, NULL);
 
 	/* Unreachable */
 	return EFI_UNSUPPORTED;

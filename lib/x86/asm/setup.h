@@ -8,8 +8,9 @@ unsigned long setup_tss(void);
 #ifdef TARGET_EFI
 #include "x86/apic.h"
 #include "x86/smp.h"
+#include "efi.h"
 
-void setup_efi(void);
+efi_status_t setup_efi(efi_bootinfo_t *efi_bootinfo);
 #endif /* TARGET_EFI */
 
 #endif /* _X86_ASM_SETUP_H_ */
