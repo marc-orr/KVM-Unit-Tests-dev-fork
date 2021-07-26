@@ -130,6 +130,72 @@ extern phys_addr_t ring0stacktop;
 extern gdt_entry_t gdt64[];
 extern size_t ring0stacksize;
 
+void setup_efi_bootinfo(efi_bootinfo_t *efi_bootinfo)
+{
+	efi_bootinfo->free_mem_size = 0;
+	efi_bootinfo->free_mem_start = 0;
+}
+
+EFI_STATUS setup_pre_boot_memory(UINTN *mapkey, efi_bootinfo_t *efi_bootinfo)
+{
+	UINTN total_entries, desc_size;
+	UINT32 desc_version;
+	EFI_MEMORY_DESCRIPTOR *buffer;
+	int i;
+	UINT64 free_mem_total_pages = 0;
+
+	buffer = LibMemoryMap(&total_entries, mapkey, &desc_size, &desc_version);
+	if (desc_version != 1) {
+		return EFI_INCOMPATIBLE_VERSION;
+	}
+
+	/* The 'buffer' contains multiple descriptors that describe memory
+	 * regions maintained by UEFI. This code records the largest free
+	 * EfiConventionalMemory region which will be used to set up the memory
+	 * allocator, so that the memory allocator can work in the largest free
+	 * continuous memory region.
+	 */
+	for (i = 0; i < total_entries; i ++) {
+		if (buffer[i].Type == EfiConventionalMemory) {
+			if (free_mem_total_pages < buffer[i].NumberOfPages) {
+				free_mem_total_pages = buffer[i].NumberOfPages;
+				efi_bootinfo->free_mem_size = free_mem_total_pages * EFI_PAGE_SIZE;
+				efi_bootinfo->free_mem_start = buffer[i].PhysicalStart;
+			}
+		}
+	}
+
+	if ((efi_bootinfo->free_mem_size == 0) || (efi_bootinfo->free_mem_start == 0)) {
+		return EFI_OUT_OF_RESOURCES;
+	}
+
+	return EFI_SUCCESS;
+}
+
+EFI_STATUS setup_efi_pre_boot(UINTN *mapkey, efi_bootinfo_t *efi_bootinfo)
+{
+	EFI_STATUS status;
+
+	status = setup_pre_boot_memory(mapkey, efi_bootinfo);
+	if (EFI_ERROR(status)) {
+		printf("setup_pre_boot_memory() failed: ");
+		switch (status) {
+		case EFI_INCOMPATIBLE_VERSION:
+			printf("Unsupported descriptor version\n");
+			break;
+		case EFI_OUT_OF_RESOURCES:
+			printf("No free memory region\n");
+			break;
+		default:
+			printf("Unknown error\n");
+			break;
+		}
+		return status;
+	}
+
+	return EFI_SUCCESS;
+}
+
 void setup_gdt_tss()
 {
 	gdt_entry_t *tss_lo, *tss_hi;
@@ -168,7 +234,7 @@ void setup_gdt_tss()
 	load_gdt_tss(tss_offset);
 }
 
-void setup_efi(void)
+void setup_efi(efi_bootinfo_t *efi_bootinfo)
 {
 	reset_apic();
 	setup_gdt_tss();
@@ -178,6 +244,8 @@ void setup_efi(void)
 	enable_apic();
 	enable_x2apic();
 	smp_init();
+	phys_alloc_init(efi_bootinfo->free_mem_start,
+			efi_bootinfo->free_mem_size);
 }
 
 #endif /* TARGET_EFI */
