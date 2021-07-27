@@ -202,6 +202,27 @@ static efi_status_t setup_memory_allocator(efi_bootinfo_t *efi_bootinfo)
 	return EFI_SUCCESS;
 }
 
+static efi_status_t setup_rsdp(efi_bootinfo_t *efi_bootinfo)
+{
+	efi_status_t status;
+	struct rsdp_descriptor *rsdp;
+
+	/*
+	 * RSDP resides in an EFI_ACPI_RECLAIM_MEMORY region, which is not used
+	 * by kvm-unit-tests x86's memory allocator. So it is not necessary to
+	 * copy the data structure to another memory region to prevent
+	 * unintentional overwrite.
+	 */
+	status = efi_get_system_config_table(ACPI_TABLE_GUID, (void **)&rsdp);
+	if (status != EFI_SUCCESS) {
+		return status;
+	}
+
+	set_efi_rsdp(rsdp);
+
+	return EFI_SUCCESS;
+}
+
 static void setup_gdt_tss(void)
 {
 	size_t tss_offset;
@@ -234,6 +255,12 @@ efi_status_t setup_efi(efi_bootinfo_t *efi_bootinfo)
 			printf("Unknown error\n");
 			break;
 		}
+		return status;
+	}
+	
+	status = setup_rsdp(efi_bootinfo);
+	if (status != EFI_SUCCESS) {
+		printf("Cannot find RSDP in EFI system table\n");
 		return status;
 	}
 
