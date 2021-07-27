@@ -254,6 +254,60 @@ efi_status_t setup_efi_pre_boot(unsigned long *mapkey, efi_bootinfo_t *efi_booti
 	return EFI_SUCCESS;
 }
 
+/* Defined in cstart64.S or efistart64.S */
+extern phys_addr_t ptl5;
+extern phys_addr_t ptl4;
+extern phys_addr_t ptl3;
+extern phys_addr_t ptl2;
+
+static void setup_page_table(void)
+{
+	pgd_t *curr_pt;
+	phys_addr_t flags;
+	int i;
+
+	/* Set default flags */
+	flags = PT_PRESENT_MASK | PT_WRITABLE_MASK | PT_USER_MASK;
+
+	/* Level 5 */
+	curr_pt = (pgd_t *)&ptl5;
+	curr_pt[0] = ((phys_addr_t)&ptl4) | flags;
+	/* Level 4 */
+	curr_pt = (pgd_t *)&ptl4;
+	curr_pt[0] = ((phys_addr_t)&ptl3) | flags;
+	/* Level 3 */
+	curr_pt = (pgd_t *)&ptl3;
+	for (i = 0; i < 4; i++) {
+		curr_pt[i] = (((phys_addr_t)&ptl2) + i * PAGE_SIZE) | flags;
+	}
+	/* Level 2 */
+	curr_pt = (pgd_t *)&ptl2;
+	flags |= PT_ACCESSED_MASK | PT_DIRTY_MASK | PT_PAGE_SIZE_MASK | PT_GLOBAL_MASK;
+	for (i = 0; i < 4 * 512; i++)	{
+		curr_pt[i] = ((phys_addr_t)(i << 21)) | flags;
+	}
+
+	/* Load 4-level page table */
+	write_cr3((ulong)&ptl4);
+}
+
+void setup_5level_page_table(void)
+{
+	/*
+	 * TODO: This function is a place holder for now. It is defined because
+	 * some test cases (e.g. x86/access.c) expect it to exist. If this
+	 * function is not defined, gcc may generate wrong position-independent
+	 * code, which leads to incorrect memory access: if compiling
+	 * x86/access.efi without this function defined, several data structures
+	 * (e.g. apic_ops) get compile time offset memory addresses, but they
+	 * should get runtime %rip based addresses.
+	 *
+	 * The reason this function does not contain any code: Setting up 5
+	 * level page table requires x86 to enter the real mode. But real mode
+	 * is currently not supported in kvm-unit-tests under UEFI.
+	 */
+}
+
 static void setup_gdt_tss(void)
 {
 	size_t tss_offset;
@@ -274,6 +328,7 @@ void setup_efi(efi_bootinfo_t *efi_bootinfo)
 	smp_init();
 	phys_alloc_init(efi_bootinfo->free_mem_start, efi_bootinfo->free_mem_size);
 	setup_efi_rsdp(efi_bootinfo->rsdp);
+	setup_page_table();
 }
 
 #endif /* TARGET_EFI */
