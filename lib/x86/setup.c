@@ -134,6 +134,7 @@ void setup_efi_bootinfo(efi_bootinfo_t *efi_bootinfo)
 {
 	efi_bootinfo->free_mem_size = 0;
 	efi_bootinfo->free_mem_start = 0;
+	efi_bootinfo->rsdp = NULL;
 }
 
 static EFI_STATUS setup_pre_boot_memory(UINTN *mapkey, efi_bootinfo_t *efi_bootinfo)
@@ -181,6 +182,11 @@ static EFI_STATUS setup_pre_boot_memory(UINTN *mapkey, efi_bootinfo_t *efi_booti
 	return EFI_SUCCESS;
 }
 
+static EFI_STATUS setup_pre_boot_rsdp(efi_bootinfo_t *efi_bootinfo)
+{
+	return LibGetSystemConfigurationTable(&AcpiTableGuid, (VOID **)&efi_bootinfo->rsdp);
+}
+
 EFI_STATUS setup_efi_pre_boot(UINTN *mapkey, efi_bootinfo_t *efi_bootinfo)
 {
 	EFI_STATUS status;
@@ -199,6 +205,12 @@ EFI_STATUS setup_efi_pre_boot(UINTN *mapkey, efi_bootinfo_t *efi_bootinfo)
 			printf("Unknown error\n");
 			break;
 		}
+		return status;
+	}
+
+	status = setup_pre_boot_rsdp(efi_bootinfo);
+	if (EFI_ERROR(status)) {
+		printf("Cannot find RSDP in EFI system table\n");
 		return status;
 	}
 
@@ -255,6 +267,7 @@ void setup_efi(efi_bootinfo_t *efi_bootinfo)
 	smp_init();
 	phys_alloc_init(efi_bootinfo->free_mem_start,
 			efi_bootinfo->free_mem_size);
+	setup_efi_rsdp(efi_bootinfo->rsdp);
 }
 
 #endif /* TARGET_EFI */

@@ -101,4 +101,8 @@ struct facs_descriptor_rev1
 
 void* find_acpi_table_addr(u32 sig);
 
+#ifdef TARGET_EFI
+void setup_efi_rsdp(struct rsdp_descriptor *rsdp);
+#endif /* TARGET_EFI */
+
 #endif
