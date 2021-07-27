@@ -218,6 +218,62 @@ efi_status_t setup_efi_pre_boot(unsigned long *mapkey, efi_bootinfo_t *efi_booti
 	return EFI_SUCCESS;
 }
 
+/* Defined in cstart64.S or efistart64.S */
+extern phys_addr_t ptl5;
+extern phys_addr_t ptl4;
+extern phys_addr_t ptl3;
+extern phys_addr_t ptl2;
+
+static void setup_page_table(void)
+{
+	pgd_t *curr_pt;
+	phys_addr_t flags;
+	int i;
+
+	/* Set default flags */
+	flags = PT_PRESENT_MASK | PT_WRITABLE_MASK | PT_USER_MASK;
+
+	/* Level 5 */
+	curr_pt = (pgd_t *)&ptl5;
+	curr_pt[0] = ((phys_addr_t)&ptl4) | flags;
+	/* Level 4 */
+	curr_pt = (pgd_t *)&ptl4;
+	curr_pt[0] = ((phys_addr_t)&ptl3) | flags;
+	/* Level 3 */
+	curr_pt = (pgd_t *)&ptl3;
+	for (i = 0; i < 4; i++) {
+		curr_pt[i] = (((phys_addr_t)&ptl2) + i * PAGE_SIZE) | flags;
+	}
+	/* Level 2 */
+	curr_pt = (pgd_t *)&ptl2;
+	flags |= PT_ACCESSED_MASK | PT_DIRTY_MASK | PT_PAGE_SIZE_MASK | PT_GLOBAL_MASK;
+	for (i = 0; i < 4 * 512; i++)	{
+		curr_pt[i] = ((phys_addr_t)(i << 21)) | flags;
+	}
+
+	/* Load 4-level page table */
+	write_cr3((ulong)&ptl4);
+}
+
+void setup_5level_page_table(void)
+{
+	/*  Check if 5-level page table is already enabled */
+	if (read_cr4() & X86_CR4_LA57) {
+		return;
+	}
+
+	/* Disable CR4.PCIDE */
+	write_cr4(read_cr4() & ~(X86_CR4_PCIDE));
+	/* Disable CR0.PG */
+	write_cr0(read_cr0() & ~(X86_CR0_PG));
+
+	/* Load new page table */
+	write_cr3((ulong)&ptl5);
+
+	/* Enable CR4.LA57 */
+	write_cr4(read_cr4() | X86_CR4_LA57);
+}
+
 static void setup_gdt_tss(void)
 {
 	gdt_entry_t *tss_lo, *tss_hi;
@@ -268,6 +324,7 @@ void setup_efi(efi_bootinfo_t *efi_bootinfo)
 	smp_init();
 	phys_alloc_init(efi_bootinfo->free_mem_start, efi_bootinfo->free_mem_size);
 	setup_efi_rsdp(efi_bootinfo->rsdp);
+	setup_page_table();
 }
 
 #endif /* TARGET_EFI */
