@@ -3,6 +3,10 @@
 #include "processor.h"
 #include <setjmp.h>
 
+#ifdef TARGET_EFI
+extern phys_addr_t ImageBase;
+#endif /* TARGET_EFI */
+
 void __set_exception_jmpbuf(jmp_buf *addr);
 #define set_exception_jmpbuf(jmpbuf) \
 	(setjmp(jmpbuf) ? : (__set_exception_jmpbuf(&(jmpbuf)), 0))
@@ -105,6 +109,9 @@ void unhandled_exception(struct ex_regs *regs, bool cpu)
 #endif
 	);
 	dump_frame_stack((void*) regs->rip, (void*) regs->rbp);
+#ifdef TARGET_EFI
+	printf("Runtime base address: %p\n", &ImageBase);
+#endif
 	abort();
 }
 
