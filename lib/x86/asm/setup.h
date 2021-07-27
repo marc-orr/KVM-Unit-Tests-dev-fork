@@ -4,7 +4,9 @@
 #ifdef TARGET_EFI
 #include "x86/acpi.h"
 #include "x86/apic.h"
+#include "x86/processor.h"
 #include "x86/smp.h"
+#include "asm/page.h"
 
 #ifdef ALIGN
 #undef ALIGN
