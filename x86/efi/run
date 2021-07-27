@@ -54,4 +54,5 @@ EFI_RUN=y \
 	-net none \
 	-nographic \
 	-smp "$EFI_SMP" \
+	-m 256 \
 	"$@"
