@@ -23,7 +23,10 @@ static void gp_handler(struct ex_regs *regs)
 
 #define GP_ASM(stmt, in, clobber)                  \
     asm volatile (                                 \
-          "mov" W " $1f, %[expected_rip]\n\t"      \
+          "push" W " %%" R "ax\n\t"                \
+	  "lea 1f(%%" R "ip), %%" R "ax\n\t"       \
+          "mov %%" R "ax, %[expected_rip]\n\t"     \
+          "pop" W " %%" R "ax\n\t"                 \
           "movl $2f-1f, %[skip_count]\n\t"         \
           "1: " stmt "\n\t"                        \
           "2: "                                    \
@@ -130,7 +133,8 @@ static int do_ring3(void (*fn)(const char *), const char *arg)
 		  "push" W " %%" R "dx \n\t"
 		  "pushf" W "\n\t"
 		  "push" W " %[user_cs] \n\t"
-		  "push" W " $1f \n\t"
+		  "lea 1f(%%" R "ip), %%" R "dx \n\t"
+		  "push" W " %%" R "dx \n\t"
 		  "iret" W "\n"
 		  "1: \n\t"
 		  "push %%" R "cx\n\t"   /* save kernel SP */
@@ -144,7 +148,7 @@ static int do_ring3(void (*fn)(const char *), const char *arg)
 #endif
 
 		  "pop %%" R "cx\n\t"
-		  "mov $1f, %%" R "dx\n\t"
+		  "lea 1f(%%" R "ip), %%" R "dx\n\t"
 		  "int %[kernel_entry_vector]\n\t"
 		  ".section .text.entry \n\t"
 		  "kernel_entry: \n\t"
