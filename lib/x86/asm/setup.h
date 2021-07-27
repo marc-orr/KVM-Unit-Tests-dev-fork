@@ -6,6 +6,7 @@ unsigned long setup_tss(void);
 #endif /* __x86_64__ */
 
 #ifdef TARGET_EFI
+#include "x86/acpi.h"
 #include "x86/apic.h"
 #include "x86/smp.h"
 #include "efi.h"
