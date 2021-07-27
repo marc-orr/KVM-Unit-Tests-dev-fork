@@ -155,9 +155,11 @@ asm("do_iret:"
 	"pushf"W" \n\t"
 	"mov %cs, %ecx \n\t"
 	"push"W" %"R "cx \n\t"
-	"push"W" $2f \n\t"
+	"lea"W" 2f(%"R "ip), %"R "bx \n\t"
+	"push"W" %"R "bx \n\t"
 
-	"cmpb $0, no_test_device\n\t"	// see if need to flush
+	"mov no_test_device(%"R "ip), %bl \n\t"
+	"cmpb $0, %bl\n\t"		// see if need to flush
 	"jnz 1f\n\t"
 	"outl %eax, $0xe4 \n\t"		// flush page
 	"1: \n\t"
