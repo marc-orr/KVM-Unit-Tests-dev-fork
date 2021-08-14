@@ -95,6 +95,14 @@ tss:
 	.endr
 tss_end:
 
+.globl online_cpus
+online_cpus:
+	.fill (max_cpus + 7) / 8, 1, 0
+
+.globl cpu_online_count
+cpu_online_count:
+	.word 0
+
 .section .init
 .code64
 .text
@@ -139,3 +147,13 @@ load_gdt_tss:
 	pushq $0x08 /* 2nd entry in gdt64: 64-bit code segment */
 	pushq %rdi
 	lretq
+
+.globl init_online_cpu_id
+init_online_cpu_id:
+	/*
+	 * Update the online_cpu and cpu_online_count variables for the given
+	 * CPU. These variables are used by SMP-related functions.
+	 */
+	lock btsq %rdi, online_cpus(%rip)
+	lock incw cpu_online_count(%rip)
+	retq

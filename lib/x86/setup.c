@@ -125,6 +125,7 @@ void setup_multiboot(struct mbi_bootinfo *bi)
 /* From x86/efi/efistart64.S */
 extern void load_idt(void);
 extern void load_gdt_tss(size_t tss_offset);
+extern void init_online_cpu_id(size_t cpu_id);
 extern phys_addr_t tss_descr;
 extern phys_addr_t ring0stacktop;
 extern gdt_entry_t gdt64[];
@@ -320,6 +321,7 @@ void setup_efi(efi_bootinfo_t *efi_bootinfo)
 	mask_pic_interrupts();
 	enable_apic();
 	enable_x2apic();
+	init_online_cpu_id(apic_id());
 	smp_init();
 	phys_alloc_init(efi_bootinfo->free_mem_start,
 			efi_bootinfo->free_mem_size);
