@@ -6,6 +6,7 @@ tags
 *.so
 *.flat
 *.efi
+*.img
 *.elf
 .pc
 patches

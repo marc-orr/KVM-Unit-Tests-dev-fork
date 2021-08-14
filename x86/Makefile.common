@@ -44,7 +44,7 @@ KEEP_FRAME_POINTER := y
 FLATLIBS = lib/libcflat.a
 
 ifeq ($(TARGET_EFI),y)
-.PRECIOUS: %.efi %.so
+.PRECIOUS: %.efi %.so %.img
 
 %.so: %.o $(FLATLIBS) $(SRCDIR)/x86/efi/elf_x86_64_efi.lds $(cstart.o)
 	$(LD) -T $(SRCDIR)/x86/efi/elf_x86_64_efi.lds $(EFI_LDFLAGS) -o $@ \
@@ -57,8 +57,12 @@ ifeq ($(TARGET_EFI),y)
 		-j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel \
 		-j .rela -j .reloc -S --target=$(FORMAT) $< $@
 	@chmod a-x $@
+
+%.img: %.efi
+	MTOOLS="$(shell which mtools)" scripts/mkefiimage.sh $^
+
 else
-# We want to keep intermediate file: %.elf and %.o 
+# We want to keep intermediate file: %.elf and %.o
 .PRECIOUS: %.elf %.o
 
 %.elf: %.o $(FLATLIBS) $(SRCDIR)/x86/flat.lds $(cstart.o)
@@ -115,4 +119,4 @@ arch_clean:
 	$(RM) $(TEST_DIR)/*.o $(TEST_DIR)/*.flat $(TEST_DIR)/*.elf \
 	$(TEST_DIR)/.*.d lib/x86/.*.d \
 	$(TEST_DIR)/efi/*.o $(TEST_DIR)/efi/.*.d \
-	$(TEST_DIR)/*.so $(TEST_DIR)/*.efi
+	$(TEST_DIR)/*.so $(TEST_DIR)/*.efi $(TEST_DIR)/*.img
