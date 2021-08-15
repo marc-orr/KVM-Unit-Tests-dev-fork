@@ -136,15 +136,22 @@ void setup_efi_bootinfo(efi_bootinfo_t *efi_bootinfo)
 	efi_bootinfo->free_mem_start = 0;
 }
 
-EFI_STATUS setup_pre_boot_memory(UINTN *mapkey, efi_bootinfo_t *efi_bootinfo)
+static EFI_STATUS setup_pre_boot_memory(UINTN *mapkey, efi_bootinfo_t *efi_bootinfo)
 {
 	UINTN total_entries, desc_size;
 	UINT32 desc_version;
-	EFI_MEMORY_DESCRIPTOR *buffer;
+	char *buffer;
 	int i;
 	UINT64 free_mem_total_pages = 0;
 
-	buffer = LibMemoryMap(&total_entries, mapkey, &desc_size, &desc_version);
+	/* Although buffer entries are later converted to EFI_MEMORY_DESCRIPTOR,
+	 * we cannot simply define buffer as 'EFI_MEMORY_DESCRIPTOR *buffer'.
+	 * Because the actual buffer entry size 'desc_size' is bigger than
+	 * 'sizeof(EFI_MEMORY_DESCRIPTOR)', i.e. there are padding data after
+	 * each EFI_MEMORY_DESCRIPTOR. So defining 'EFI_MEMORY_DESCRIPTOR
+	 * *buffer' leads to wrong buffer entries fetched.
+	 */
+	buffer = (char *)LibMemoryMap(&total_entries, mapkey, &desc_size, &desc_version);
 	if (desc_version != 1) {
 		return EFI_INCOMPATIBLE_VERSION;
 	}
@@ -155,17 +162,19 @@ EFI_STATUS setup_pre_boot_memory(UINTN *mapkey, efi_bootinfo_t *efi_bootinfo)
 	 * allocator, so that the memory allocator can work in the largest free
 	 * continuous memory region.
 	 */
-	for (i = 0; i < total_entries; i ++) {
-		if (buffer[i].Type == EfiConventionalMemory) {
-			if (free_mem_total_pages < buffer[i].NumberOfPages) {
-				free_mem_total_pages = buffer[i].NumberOfPages;
+	for (i = 0; i < total_entries * desc_size; i += desc_size) {
+		EFI_MEMORY_DESCRIPTOR *d = (EFI_MEMORY_DESCRIPTOR *)&buffer[i];
+
+		if (d->Type == EfiConventionalMemory) {
+			if (free_mem_total_pages < d->NumberOfPages) {
+				free_mem_total_pages = d->NumberOfPages;
 				efi_bootinfo->free_mem_size = free_mem_total_pages * EFI_PAGE_SIZE;
-				efi_bootinfo->free_mem_start = buffer[i].PhysicalStart;
+				efi_bootinfo->free_mem_start = d->PhysicalStart;
 			}
 		}
 	}
 
-	if ((efi_bootinfo->free_mem_size == 0) || (efi_bootinfo->free_mem_start == 0)) {
+	if (efi_bootinfo->free_mem_size == 0) {
 		return EFI_OUT_OF_RESOURCES;
 	}
 
@@ -196,7 +205,7 @@ EFI_STATUS setup_efi_pre_boot(UINTN *mapkey, efi_bootinfo_t *efi_bootinfo)
 	return EFI_SUCCESS;
 }
 
-void setup_gdt_tss()
+static void setup_gdt_tss(void)
 {
 	gdt_entry_t *tss_lo, *tss_hi;
 	tss64_t *curr_tss;
