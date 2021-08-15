@@ -12,6 +12,7 @@ unsigned long setup_tss(void);
 #include "x86/smp.h"
 #include "asm/page.h"
 #include "efi.h"
+#include "x86/amd_sev.h"
 
 efi_status_t setup_efi(efi_bootinfo_t *efi_bootinfo);
 void setup_5level_page_table(void);
