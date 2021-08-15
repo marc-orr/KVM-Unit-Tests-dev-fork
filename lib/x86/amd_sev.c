@@ -48,3 +48,8 @@ unsigned long long get_amd_sev_c_bit_mask(void)
 {
 	return 1ull << amd_sev_c_bit_pos;
 }
+
+unsigned long long get_amd_sev_c_bit_pos(void)
+{
+	return amd_sev_c_bit_pos;
+}

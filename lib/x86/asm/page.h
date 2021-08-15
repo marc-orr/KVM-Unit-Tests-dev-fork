@@ -33,10 +33,19 @@ typedef unsigned long pgd_t;
 #define PT_PAGE_SIZE_MASK	(1ull << 7)
 #define PT_GLOBAL_MASK		(1ull << 8)
 #define PT64_NX_MASK		(1ull << 63)
-#define PT_ADDR_MASK		GENMASK_ULL(51, 12)
+#ifndef CONFIG_AMD_SEV
+#define PT_ADDR_UPPER_BOUND	(51)
+#else
+/* lib/x86/amd_sev.c */
+extern unsigned long long get_amd_sev_c_bit_mask(void);
+extern unsigned long long get_amd_sev_c_bit_pos(void);
+#define PT_ADDR_UPPER_BOUND	(get_amd_sev_c_bit_pos()-1)
+#endif /* CONFIG_AMD_SEV */
+#define PT_ADDR_LOWER_BOUND	(PAGE_SHIFT)
+#define PT_ADDR_MASK		GENMASK_ULL(PT_ADDR_UPPER_BOUND, PT_ADDR_LOWER_BOUND)
 
 #define PDPTE64_PAGE_SIZE_MASK	  (1ull << 7)
-#define PDPTE64_RSVD_MASK	  GENMASK_ULL(51, cpuid_maxphyaddr())
+#define PDPTE64_RSVD_MASK	  GENMASK_ULL(PT_ADDR_UPPER_BOUND, cpuid_maxphyaddr())
 
 #define PT_AD_MASK              (PT_ACCESSED_MASK | PT_DIRTY_MASK)
 
