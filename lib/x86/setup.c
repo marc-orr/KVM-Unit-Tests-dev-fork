@@ -238,6 +238,9 @@ static void setup_page_table(void)
 	/* Set default flags */
 	flags = PT_PRESENT_MASK | PT_WRITABLE_MASK | PT_USER_MASK;
 
+	/* Set AMD SEV C-Bit for page table entries */
+	flags |= get_amd_sev_c_bit_mask();
+
 	/* Level 5 */
 	curr_pt = (pgd_t *)&ptl5;
 	curr_pt[0] = ((phys_addr_t)&ptl4) | flags;
@@ -307,6 +310,18 @@ efi_status_t setup_efi(efi_bootinfo_t *efi_bootinfo)
 	if (status != EFI_SUCCESS) {
 		printf("Cannot find RSDP in EFI system table\n");
 		return status;
+	}
+
+	status = setup_amd_sev();
+	if (status != EFI_SUCCESS) {
+		switch (status) {
+		case EFI_UNSUPPORTED:
+			/* Continue if AMD SEV is not supported */
+			break;
+		default:
+			printf("Set up AMD SEV failed\n");
+			return status;
+		}
 	}
 
 	reset_apic();
