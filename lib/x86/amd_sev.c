@@ -44,6 +44,17 @@ EFI_STATUS setup_amd_sev(void)
 	return EFI_SUCCESS;
 }
 
+#ifdef CONFIG_AMD_SEV_ES
+EFI_STATUS setup_amd_sev_es(void){
+	/* Test if SEV-ES is enabled */
+	if (!(rdmsr(MSR_SEV_STATUS) & SEV_ES_ENABLED_MASK)) {
+		return EFI_UNSUPPORTED;
+	}
+
+	return EFI_SUCCESS;
+}
+#endif /* CONFIG_AMD_SEV_ES */
+
 unsigned long long get_amd_sev_c_bit_mask(void)
 {
 	return 1ull << amd_sev_c_bit_pos;
