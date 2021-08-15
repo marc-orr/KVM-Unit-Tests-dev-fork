@@ -214,6 +214,25 @@ EFI_STATUS setup_efi_pre_boot(UINTN *mapkey, efi_bootinfo_t *efi_bootinfo)
 		return status;
 	}
 
+#ifdef CONFIG_AMD_SEV
+	status = setup_amd_sev();
+	if (EFI_ERROR(status)) {
+		printf("setup_amd_sev() failed: ");
+		switch (status) {
+		case EFI_UNSUPPORTED:
+			printf("SEV is not supported\n");
+			break;
+		case EFI_NOT_READY:
+			printf("SEV is not enabled\n");
+			break;
+		default:
+			printf("Unknown error\n");
+			break;
+		}
+		return status;
+	}
+#endif /* CONFIG_AMD_SEV */
+
 	return EFI_SUCCESS;
 }
 
@@ -231,6 +250,11 @@ static void setup_page_table(void)
 
 	/* Set default flags */
 	flags = PT_PRESENT_MASK | PT_WRITABLE_MASK | PT_USER_MASK;
+
+#ifdef CONFIG_AMD_SEV
+	/* Set AMD SEV C-Bit for page table entries */
+	flags |= get_amd_sev_c_bit_mask();
+#endif /* CONFIG_AMD_SEV */
 
 	/* Level 5 */
 	curr_pt = (pgd_t *)&ptl5;

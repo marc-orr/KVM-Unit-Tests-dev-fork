@@ -31,6 +31,8 @@ earlycon=
 target_efi=
 efi_include_path=
 efi_libs_path=
+amd_sev=
+amd_sev_variant=
 
 usage() {
     cat <<-EOF
@@ -77,6 +79,7 @@ usage() {
 	    --efi-libs-path        Path to GNU-EFI libraries, e.g. "/usr/lib/". This dir should
 	                           contain 3 files from GNU-EFI: crt0-efi-x86_64.o, libefi.a,
 	                           and libgnuefi.a
+	    --amd-sev=VARIANT      AMD SEV variant, [SEV|ES|SNP]
 EOF
     exit 1
 }
@@ -149,6 +152,10 @@ while [[ "$1" = -* ]]; do
 	    ;;
 	--efi-libs-path)
 	    efi_libs_path="$arg"
+	    ;;
+	--amd-sev)
+	    amd_sev=y
+	    [ "${arg^^}" != "SEV" ] && amd_sev_variant="${arg^^}"
 	    ;;
 	--help)
 	    usage
@@ -361,6 +368,8 @@ HOST_KEY_DOCUMENT=$host_key_document
 TARGET_EFI=$target_efi
 EFI_INCLUDE_PATH=$efi_include_path
 EFI_LIBS_PATH=$efi_libs_path
+AMD_SEV=$amd_sev
+AMD_SEV_VARIANT=$amd_sev_variant
 EOF
 if [ "$arch" = "arm" ] || [ "$arch" = "arm64" ]; then
     echo "TARGET=$target" >> config.mak

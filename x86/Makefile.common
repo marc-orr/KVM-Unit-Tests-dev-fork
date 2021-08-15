@@ -25,6 +25,9 @@ cflatobjs += lib/x86/delay.o
 ifeq ($(TARGET_EFI),y)
 cflatobjs += lib/x86/setup.o
 cflatobjs += lib/efi.o
+ifeq ($(AMD_SEV),y)
+cflatobjs += lib/x86/amd_sev.o
+endif
 endif
 
 OBJDIRS += lib/x86
@@ -37,6 +40,13 @@ ifneq ($(WA_DIVIDE),)
 COMMON_CFLAGS += -Wa,--divide
 endif
 COMMON_CFLAGS += -O1
+
+ifeq ($(AMD_SEV),y)
+COMMON_CFLAGS += -DCONFIG_AMD_SEV
+ifneq ($(AMD_SEV_VARIANT),)
+COMMON_CFLAGS += -DCONFIG_AMD_SEV_$(AMD_SEV_VARIANT)
+endif
+endif
 
 # stack.o relies on frame pointers.
 KEEP_FRAME_POINTER := y

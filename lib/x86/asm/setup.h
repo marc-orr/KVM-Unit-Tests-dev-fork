@@ -7,6 +7,9 @@
 #include "x86/processor.h"
 #include "x86/smp.h"
 #include "asm/page.h"
+#ifdef CONFIG_AMD_SEV
+#include "x86/amd_sev.h"
+#endif /* CONFIG_AMD_SEV */
 
 #ifdef ALIGN
 #undef ALIGN
