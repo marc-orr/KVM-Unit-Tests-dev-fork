@@ -40,6 +40,7 @@ bool amd_sev_enabled(void);
 efi_status_t setup_amd_sev(void);
 
 bool amd_sev_es_enabled(void);
+void copy_uefi_segments(void);
 
 unsigned long long get_amd_sev_c_bit_mask(void);
 unsigned long long get_amd_sev_addr_upperbound(void);
