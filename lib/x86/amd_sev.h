@@ -41,9 +41,15 @@
  */
 #define SEV_ES_VC_HANDLER_VECTOR 29
 
+/* AMD Programmer's Manual Volume 2
+ *   - Section "GHCB"
+ */
+#define SEV_ES_GHCB_MSR_INDEX 0xc0010130
+
 EFI_STATUS setup_amd_sev(void);
 #ifdef CONFIG_AMD_SEV_ES
 EFI_STATUS setup_amd_sev_es(void);
+void setup_ghcb_pte(pgd_t *page_table);
 void copy_uefi_segments(void);
 #endif /* CONFIG_AMD_SEV_ES */
 

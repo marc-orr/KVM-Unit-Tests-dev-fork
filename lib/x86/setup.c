@@ -290,6 +290,10 @@ static void setup_page_table(void)
 		curr_pt[i] = ((phys_addr_t)(i << 21)) | flags;
 	}
 
+#ifdef CONFIG_AMD_SEV_ES
+	setup_ghcb_pte((pgd_t *)&ptl4);
+#endif /* CONFIG_AMD_SEV_ES */
+
 	/* Load 4-level page table */
 	write_cr3((ulong)&ptl4);
 }
