@@ -43,7 +43,14 @@
 bool amd_sev_enabled(void);
 EFI_STATUS setup_amd_sev(void);
 
+/*
+ * AMD Programmer's Manual Volume 2
+ *   - Section "#VC Exception"
+ */
+#define SEV_ES_VC_HANDLER_VECTOR 29
+
 bool amd_sev_es_enabled(void);
+EFI_STATUS setup_amd_sev_es(void);
 void copy_uefi_segments(void);
 
 unsigned long long get_amd_sev_c_bit_mask(void);

@@ -227,6 +227,18 @@ EFI_STATUS setup_efi_pre_boot(UINTN *mapkey, efi_bootinfo_t *efi_bootinfo)
 		}
 	}
 
+	status = setup_amd_sev_es();
+	if (EFI_ERROR(status)) {
+		switch (status) {
+		case EFI_UNSUPPORTED:
+			/* Continue if AMD SEV-ES is not supported */
+			break;
+		default:
+			printf("Set up AMD SEV-ES failed\n");
+			return status;
+		}
+	}
+
 	return EFI_SUCCESS;
 }
 
