@@ -36,6 +36,11 @@
 #define SEV_ENABLED_MASK    0b1
 #define SEV_ES_ENABLED_MASK 0b10
 
+/* AMD Programmer's Manual Volume 2
+ *   - Section "#VC Exception"
+ */
+#define SEV_ES_VC_HANDLER_VECTOR 29
+
 EFI_STATUS setup_amd_sev(void);
 #ifdef CONFIG_AMD_SEV_ES
 EFI_STATUS setup_amd_sev_es(void);

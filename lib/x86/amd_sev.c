@@ -46,10 +46,20 @@ EFI_STATUS setup_amd_sev(void)
 
 #ifdef CONFIG_AMD_SEV_ES
 EFI_STATUS setup_amd_sev_es(void){
+	struct descriptor_table_ptr idtr;
+	idt_entry_t *idt;
+
 	/* Test if SEV-ES is enabled */
 	if (!(rdmsr(MSR_SEV_STATUS) & SEV_ES_ENABLED_MASK)) {
 		return EFI_UNSUPPORTED;
 	}
+
+	/* Copy UEFI's #VC IDT entry, so KVM-Unit-Tests can reuse it and does
+	 * not have to re-implement a #VC handler
+	 */
+	sidt(&idtr);
+	idt = (idt_entry_t *)idtr.base;
+	boot_idt[SEV_ES_VC_HANDLER_VECTOR] = idt[SEV_ES_VC_HANDLER_VECTOR];
 
 	return EFI_SUCCESS;
 }
