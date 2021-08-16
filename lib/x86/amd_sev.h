@@ -39,6 +39,7 @@
 EFI_STATUS setup_amd_sev(void);
 #ifdef CONFIG_AMD_SEV_ES
 EFI_STATUS setup_amd_sev_es(void);
+void copy_uefi_segments(void);
 #endif /* CONFIG_AMD_SEV_ES */
 
 unsigned long long get_amd_sev_c_bit_mask(void);
