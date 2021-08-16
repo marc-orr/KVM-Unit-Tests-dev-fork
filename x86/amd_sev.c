@@ -13,6 +13,7 @@
 #include "libcflat.h"
 #include "x86/processor.h"
 #include "x86/amd_sev.h"
+#include "msr.h"
 
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 1
@@ -55,10 +56,39 @@ static int test_sev_activation(void)
 	return EXIT_SUCCESS;
 }
 
+static int test_sev_es_activation(void)
+{
+	if (!(rdmsr(MSR_SEV_STATUS) & SEV_ES_ENABLED_MASK)) {
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
+}
+
+static int test_sev_es_msr(void)
+{
+	/*
+	 * With SEV-ES, rdmsr/wrmsr trigger #VC exception. If #VC is handled
+	 * correctly, rdmsr/wrmsr should work like without SEV-ES and not crash
+	 * the guest VM.
+	 */
+	u64 val = 0x1234;
+	wrmsr(MSR_TSC_AUX, val);
+	if(val != rdmsr(MSR_TSC_AUX)) {
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
+}
+
 int main(void)
 {
 	int rtn;
 	rtn = test_sev_activation();
 	report(rtn == EXIT_SUCCESS, "SEV activation test.");
+	rtn = test_sev_es_activation();
+	report(rtn == EXIT_SUCCESS, "SEV-ES activation test.");
+	rtn = test_sev_es_msr();
+	report(rtn == EXIT_SUCCESS, "SEV-ES MSR test.");
 	return report_summary();
 }
