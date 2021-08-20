@@ -28,6 +28,7 @@ erratatxt="$srcdir/errata.txt"
 host_key_document=
 page_size=
 earlycon=
+target_efi=
 
 usage() {
     cat <<-EOF
@@ -69,6 +70,7 @@ usage() {
 	               pl011,mmio32,ADDR
 	                           Specify a PL011 compatible UART at address ADDR. Supported
 	                           register stride is 32 bit only.
+	    --target-efi           Boot and run from UEFI
 EOF
     exit 1
 }
@@ -132,6 +134,9 @@ while [[ "$1" = -* ]]; do
 	    ;;
 	--earlycon)
 	    earlycon="$arg"
+	    ;;
+	--target-efi)
+	    target_efi=y
 	    ;;
 	--help)
 	    usage
@@ -341,6 +346,7 @@ U32_LONG_FMT=$u32_long
 WA_DIVIDE=$wa_divide
 GENPROTIMG=${GENPROTIMG-genprotimg}
 HOST_KEY_DOCUMENT=$host_key_document
+TARGET_EFI=$target_efi
 EOF
 if [ "$arch" = "arm" ] || [ "$arch" = "arm64" ]; then
     echo "TARGET=$target" >> config.mak
