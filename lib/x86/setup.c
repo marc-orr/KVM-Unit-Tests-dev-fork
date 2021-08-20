@@ -2,6 +2,7 @@
  * Initialize machine setup information
  *
  * Copyright (C) 2017, Red Hat Inc, Andrew Jones <drjones@redhat.com>
+ * Copyright (C) 2021, Google Inc, Zixuan Wang <zixuanwang@google.com>
  *
  * This work is licensed under the terms of the GNU LGPL, version 2.
  */
@@ -9,6 +10,7 @@
 #include "fwcfg.h"
 #include "alloc_phys.h"
 #include "argv.h"
+#include "asm/setup.h"
 
 extern char edata;
 
@@ -117,6 +119,19 @@ void setup_multiboot(struct mbi_bootinfo *bi)
 	initrd = (char *)(uintptr_t) mods->start;
 	initrd_size = mods->end - mods->start;
 }
+
+#ifdef TARGET_EFI
+
+void setup_efi(void)
+{
+	reset_apic();
+	mask_pic_interrupts();
+	enable_apic();
+	enable_x2apic();
+	smp_init();
+}
+
+#endif /* TARGET_EFI */
 
 void setup_libcflat(void)
 {

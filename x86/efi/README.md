@@ -1,4 +1,38 @@
-# EFI Startup Code and Linker Script
+# Build KVM-Unit-Tests and run under UEFI
+
+## Introduction
+
+This dir provides code to build KVM-Unit-Tests test cases and run them under
+QEMU and UEFI.
+
+### Install dependencies
+
+The following dependencies should be installed:
+
+- [UEFI firmware](https://github.com/tianocore/edk2): to run test cases in QEMU
+
+### Build
+
+To build:
+
+    ./configure --target-efi
+    make
+
+### Run test cases with UEFI
+
+To run a test case with UEFI:
+
+    ./x86/efi/run ./x86/dummy.efi
+
+By default the runner script loads the UEFI firmware `/usr/share/ovmf/OVMF.fd`;
+please install UEFI firmware to this path, or specify the correct path through
+the env variable `EFI_UEFI`:
+
+    EFI_UEFI=/path/to/OVMF.fd ./x86/efi/run ./x86/dummy.efi
+
+## Code structure
+
+### Code from GNU-EFI
 
 This dir contains source code and linker script copied from
 [GNU-EFI](https://sourceforge.net/projects/gnu-efi/):
@@ -23,3 +57,7 @@ Relocatable Binaries".
 
 KVM-Unit-Tests follows a similar build process, but does not link with GNU-EFI
 library.
+### Startup code for KVM-Unit-Tests in UEFI
+
+This dir also contains KVM-Unit-Tests startup code in UEFI:
+   - efistart64.S: startup code for KVM-Unit-Tests in UEFI
