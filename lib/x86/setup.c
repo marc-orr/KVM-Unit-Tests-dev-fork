@@ -347,8 +347,19 @@ static void setup_gdt_tss(void)
 	load_gdt_tss(tss_offset);
 }
 
+static void setup_cr4(void)
+{
+	/*
+	 * Set CR4 PAE flag and clear other the flags. This is because UEFI boot
+	 * up with CR4 = 0x668, but KVM-Unit-Tests by default only sets the PAE
+	 * flag (see x86/cstart64.S:prepare_64).
+	 */
+	write_cr4(X86_CR4_PAE);
+}
+
 void setup_efi(efi_bootinfo_t *efi_bootinfo)
 {
+	setup_cr4();
 	reset_apic();
 	setup_gdt_tss();
 	setup_idt();
