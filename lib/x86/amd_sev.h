@@ -58,7 +58,6 @@ EFI_STATUS setup_amd_sev(void);
 bool amd_sev_es_enabled(void);
 EFI_STATUS setup_amd_sev_es(void);
 void setup_ghcb_pte(pgd_t *page_table);
-void copy_uefi_segments(void);
 
 unsigned long long get_amd_sev_c_bit_mask(void);
 unsigned long long get_amd_sev_addr_upperbound(void);

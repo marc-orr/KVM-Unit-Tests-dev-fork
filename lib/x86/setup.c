@@ -340,10 +340,6 @@ static void setup_gdt_tss(void)
 	tss_hi->limit_low = (u16)((curr_tss_addr >> 32) & 0xffff);
 	tss_hi->base_low = (u16)((curr_tss_addr >> 48) & 0xffff);
 
-	if (amd_sev_es_enabled()) {
-		copy_uefi_segments();
-	}
-
 	load_gdt_tss(tss_offset);
 }
 

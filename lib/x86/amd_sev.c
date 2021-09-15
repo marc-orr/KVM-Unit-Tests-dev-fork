@@ -12,6 +12,7 @@
 #include "amd_sev.h"
 #include "x86/processor.h"
 #include "x86/vm.h"
+#include "x86/desc.h"
 
 static unsigned long long amd_sev_c_bit_pos;
 
@@ -96,6 +97,7 @@ EFI_STATUS setup_amd_sev_es(void)
 {
 	struct descriptor_table_ptr idtr;
 	idt_entry_t *idt;
+	idt_entry_t vc_handler_idt;
 
 	if (!amd_sev_es_enabled()) {
 		return EFI_UNSUPPORTED;
@@ -103,11 +105,15 @@ EFI_STATUS setup_amd_sev_es(void)
 
 	/*
 	 * Copy UEFI's #VC IDT entry, so KVM-Unit-Tests can reuse it and does
-	 * not have to re-implement a #VC handler
+	 * not have to re-implement a #VC handler. Also update the #VC IDT code
+	 * segment to use KVM-Unit-Tests segments, KERNEL_CS, so that we do not
+	 * have to copy the UEFI GDT entries into KVM-Unit-Tests GDT.
 	 */
 	sidt(&idtr);
 	idt = (idt_entry_t *)idtr.base;
-	boot_idt[SEV_ES_VC_HANDLER_VECTOR] = idt[SEV_ES_VC_HANDLER_VECTOR];
+	vc_handler_idt = idt[SEV_ES_VC_HANDLER_VECTOR];
+	vc_handler_idt.selector = KERNEL_CS;
+	boot_idt[SEV_ES_VC_HANDLER_VECTOR] = vc_handler_idt;
 
 	return EFI_SUCCESS;
 }
@@ -146,47 +152,6 @@ void setup_ghcb_pte(pgd_t *page_table)
 
 	/* Unset c-bit in Level 1 GHCB pte */
 	*pte &= ~(get_amd_sev_c_bit_mask());
-}
-
-static void copy_gdt_entry(gdt_entry_t *dst, gdt_entry_t *src, unsigned segment)
-{
-	unsigned index;
-
-	index = segment / sizeof(gdt_entry_t);
-	dst[index] = src[index];
-}
-
-/* Defined in x86/efi/efistart64.S */
-extern gdt_entry_t gdt64[];
-
-/*
- * Copy UEFI's code and data segments to KVM-Unit-Tests GDT.
- *
- * This is because KVM-Unit-Tests reuses UEFI #VC handler that requires UEFI
- * code and data segments to run. The UEFI #VC handler crashes the guest VM if
- * these segments are not available. So we need to copy these two UEFI segments
- * into KVM-Unit-Tests GDT.
- *
- * UEFI uses 0x30 as code segment and 0x38 as data segment. Fortunately, these
- * segments can be safely overridden in KVM-Unit-Tests as they are used as
- * protected mode and real mode segments (see x86/efi/efistart64.S for more
- * details), which are not used in EFI set up process.
- */
-void copy_uefi_segments(void)
-{
-	if (!amd_sev_es_enabled()) {
-		return;
-	}
-
-	/* GDT and GDTR in current UEFI */
-	gdt_entry_t *gdt_curr;
-	struct descriptor_table_ptr gdtr_curr;
-
-	/* Copy code and data segments from UEFI */
-	sgdt(&gdtr_curr);
-	gdt_curr = (gdt_entry_t *)gdtr_curr.base;
-	copy_gdt_entry(gdt64, gdt_curr, read_cs());
-	copy_gdt_entry(gdt64, gdt_curr, read_ds());
 }
 
 unsigned long long get_amd_sev_c_bit_mask(void)
