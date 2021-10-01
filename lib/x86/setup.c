@@ -2,6 +2,7 @@
  * Initialize machine setup information
  *
  * Copyright (C) 2017, Red Hat Inc, Andrew Jones <drjones@redhat.com>
+ * Copyright (C) 2021, Google Inc, Zixuan Wang <zixuanwang@google.com>
  *
  * This work is licensed under the terms of the GNU LGPL, version 2.
  */
@@ -9,6 +10,10 @@
 #include "fwcfg.h"
 #include "alloc_phys.h"
 #include "argv.h"
+#include "desc.h"
+#include "apic.h"
+#include "apic-defs.h"
+#include "asm/setup.h"
 
 extern char edata;
 
@@ -96,6 +101,44 @@ void find_highmem(void)
 		best_end = best_end & -HUGEPAGE_SIZE;
 		phys_alloc_init(best_start, best_end - best_start);
 	}
+}
+
+extern phys_addr_t ring0stacktop;
+
+/* Setup TSS for the current processor, and return TSS offset within gdt64 */
+unsigned long setup_tss(void)
+{
+	u32 id;
+	gdt_entry_t *gdt_entry_lo, *gdt_entry_hi;
+	tss64_t *tss_entry;
+	phys_addr_t tss_entry_addr;
+
+	id = apic_id();
+
+	/* Runtime address of current TSS */
+	tss_entry = &tss[id];
+	tss_entry_addr = (phys_addr_t)tss_entry;
+
+	/* Update TSS */
+	memset((void *)tss_entry, 0, sizeof(tss64_t));
+	tss_entry->rsp0 = (u64)((u8*)&ring0stacktop - id * 4096);
+
+	/* Each TSS descriptor takes up 2 GDT entries */
+	gdt_entry_lo = &gdt64[GDT64_PRE_TSS_ENTRIES + id * 2 + 0];
+	gdt_entry_hi = &gdt64[GDT64_PRE_TSS_ENTRIES + id * 2 + 1];
+
+	/* Update TSS descriptors */
+	memset((void *)gdt_entry_lo, 0, sizeof(gdt_entry_t));
+	memset((void *)gdt_entry_hi, 0, sizeof(gdt_entry_t));
+	gdt_entry_lo->access      = 0x89;
+	gdt_entry_lo->limit_low   = 0xffff;
+	gdt_entry_lo->base_low    = (u16)(tss_entry_addr & 0xffff);
+	gdt_entry_lo->base_middle =  (u8)((tss_entry_addr >> 16) & 0xff);
+	gdt_entry_lo->base_high   =  (u8)((tss_entry_addr >> 24) & 0xff);
+	gdt_entry_hi->limit_low   = (u16)((tss_entry_addr >> 32) & 0xffff);
+	gdt_entry_hi->base_low    = (u16)((tss_entry_addr >> 48) & 0xffff);
+
+	return (GDT64_PRE_TSS_ENTRIES + id * 2) * sizeof(gdt_entry_t);
 }
 #endif
 
