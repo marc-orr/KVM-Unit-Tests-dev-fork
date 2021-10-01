@@ -75,7 +75,11 @@ union vmx_ept_vpid  ept_vpid;
 
 extern struct descriptor_table_ptr gdt64_desc;
 extern struct descriptor_table_ptr idt_descr;
+#ifdef __x86_64__
+extern struct descriptor_table_ptr *tss_descr;
+#else
 extern struct descriptor_table_ptr tss_descr;
+#endif
 extern void *vmx_return;
 extern void *entry_sysenter;
 extern void *guest_entry;
@@ -1276,7 +1280,11 @@ static void init_vmcs_host(void)
 	vmcs_write(HOST_SEL_FS, KERNEL_DS);
 	vmcs_write(HOST_SEL_GS, KERNEL_DS);
 	vmcs_write(HOST_SEL_TR, TSS_MAIN);
+	#ifdef __x86_64__
+	vmcs_write(HOST_BASE_TR, tss_descr->base);
+	#else
 	vmcs_write(HOST_BASE_TR, tss_descr.base);
+	#endif
 	vmcs_write(HOST_BASE_GDTR, gdt64_desc.base);
 	vmcs_write(HOST_BASE_IDTR, idt_descr.base);
 	vmcs_write(HOST_BASE_FS, 0);
@@ -1332,7 +1340,11 @@ static void init_vmcs_guest(void)
 	vmcs_write(GUEST_BASE_DS, 0);
 	vmcs_write(GUEST_BASE_FS, 0);
 	vmcs_write(GUEST_BASE_GS, 0);
+	#ifdef __x86_64__
+	vmcs_write(GUEST_BASE_TR, tss_descr->base);
+	#else
 	vmcs_write(GUEST_BASE_TR, tss_descr.base);
+	#endif
 	vmcs_write(GUEST_BASE_LDTR, 0);
 
 	vmcs_write(GUEST_LIMIT_CS, 0xFFFFFFFF);
@@ -1342,7 +1354,11 @@ static void init_vmcs_guest(void)
 	vmcs_write(GUEST_LIMIT_FS, 0xFFFFFFFF);
 	vmcs_write(GUEST_LIMIT_GS, 0xFFFFFFFF);
 	vmcs_write(GUEST_LIMIT_LDTR, 0xffff);
+	#ifdef __x86_64__
+	vmcs_write(GUEST_LIMIT_TR, tss_descr->limit);
+	#else
 	vmcs_write(GUEST_LIMIT_TR, tss_descr.limit);
+	#endif
 
 	vmcs_write(GUEST_AR_CS, 0xa09b);
 	vmcs_write(GUEST_AR_DS, 0xc093);
