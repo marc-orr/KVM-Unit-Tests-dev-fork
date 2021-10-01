@@ -1,11 +1,7 @@
 
 #include "apic-defs.h"
 
-.globl boot_idt
-
-.globl idt_descr
-.globl tss_descr
-.globl gdt64_desc
+.globl ring0stacktop
 .globl online_cpus
 .globl cpu_online_count
 
@@ -50,56 +46,6 @@ ptl5:
 	.quad ptl4 + 7
 
 .align 4096
-
-boot_idt:
-	.rept 256
-	.quad 0
-	.quad 0
-	.endr
-end_boot_idt:
-
-gdt64_desc:
-	.word gdt64_end - gdt64 - 1
-	.quad gdt64
-
-gdt64:
-	.quad 0
-	.quad 0x00af9b000000ffff // 64-bit code segment
-	.quad 0x00cf93000000ffff // 32/64-bit data segment
-	.quad 0x00af1b000000ffff // 64-bit code segment, not present
-	.quad 0x00cf9b000000ffff // 32-bit code segment
-	.quad 0x008f9b000000FFFF // 16-bit code segment
-	.quad 0x008f93000000FFFF // 16-bit data segment
-	.quad 0x00cffb000000ffff // 32-bit code segment (user)
-	.quad 0x00cff3000000ffff // 32/64-bit data segment (user)
-	.quad 0x00affb000000ffff // 64-bit code segment (user)
-
-	.quad 0			 // 6 spare selectors
-	.quad 0
-	.quad 0
-	.quad 0
-	.quad 0
-	.quad 0
-
-tss_descr:
-	.rept max_cpus
-	.quad 0x000089000000ffff // 64-bit avail tss
-	.quad 0                  // tss high addr
-	.endr
-gdt64_end:
-
-i = 0
-.globl tss
-tss:
-	.rept max_cpus
-	.long 0
-	.quad ring0stacktop - i * 4096
-	.quad 0, 0
-	.quad 0, 0, 0, 0, 0, 0, 0, 0
-	.long 0, 0, 0
-i = i + 1
-	.endr
-tss_end:
 
 mb_boot_info:	.quad 0
 
@@ -291,31 +237,12 @@ setup_5level_page_table:
 lvl5:
 	retq
 
-idt_descr:
-	.word end_boot_idt - boot_idt - 1
-	.quad boot_idt
-
 online_cpus:
 	.fill (max_cpus + 7) / 8, 1, 0
 
 load_tss:
 	lidtq idt_descr
-	mov $(APIC_DEFAULT_PHYS_BASE + APIC_ID), %eax
-	mov (%rax), %eax
-	shr $24, %eax
-	mov %eax, %ebx
-	shl $4, %ebx
-	mov $((tss_end - tss) / max_cpus), %edx
-	imul %edx
-	add $tss, %rax
-	mov %ax, tss_descr+2(%rbx)
-	shr $16, %rax
-	mov %al, tss_descr+4(%rbx)
-	shr $8, %rax
-	mov %al, tss_descr+7(%rbx)
-	shr $8, %rax
-	mov %eax, tss_descr+8(%rbx)
-	lea tss_descr-gdt64(%rbx), %rax
+	call setup_tss
 	ltr %ax
 	ret
 

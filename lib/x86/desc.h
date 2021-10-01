@@ -208,7 +208,11 @@ void set_idt_task_gate(int vec, u16 sel);
 void set_intr_task_gate(int vec, void *fn);
 void setup_tss32(void);
 #else
-extern tss64_t tss;
+extern tss64_t tss[];
+/* In gdt64, there are 16 entries before TSS entries */
+#define GDT64_PRE_TSS_ENTRIES (16)
+#define GDT64_TSS_OFFSET (GDT64_PRE_TSS_ENTRIES)
+extern gdt_entry_t gdt64[];
 #endif
 
 unsigned exception_vector(void);
