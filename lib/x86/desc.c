@@ -3,6 +3,50 @@
 #include "processor.h"
 #include <setjmp.h>
 
+#ifdef __x86_64__
+#include "apic-defs.h"
+
+/* Boot-related data structures */
+
+/* IDT and IDT descriptor */
+idt_entry_t boot_idt[256] = {0};
+
+struct descriptor_table_ptr idt_descr = {
+	.limit = sizeof(boot_idt) - 1,
+	.base = (phys_addr_t)boot_idt,
+};
+
+/* GDT, TSS and descriptors */
+gdt_entry_t gdt64[GDT64_PRE_TSS_ENTRIES + MAX_TEST_CPUS * 2] = {
+	{     0, 0, 0, 0x00, 0x00, 0}, /* 0x00 null */
+	{0xffff, 0, 0, 0x9b, 0xaf, 0}, /* 0x08 64-bit code segment */
+	{0xffff, 0, 0, 0x93, 0xcf, 0}, /* 0x10 32/64-bit data segment */
+	{0xffff, 0, 0, 0x1b, 0xaf, 0}, /* 0x18 64-bit code segment, not present */
+	{0xffff, 0, 0, 0x9b, 0xcf, 0}, /* 0x20 32-bit code segment */
+	{0xffff, 0, 0, 0x9b, 0x8f, 0}, /* 0x28 16-bit code segment */
+	{0xffff, 0, 0, 0x93, 0x8f, 0}, /* 0x30 16-bit data segment */
+	{0xffff, 0, 0, 0xfb, 0xcf, 0}, /* 0x38 32-bit code segment (user) */
+	{0xffff, 0, 0, 0xf3, 0xcf, 0}, /* 0x40 32/64-bit data segment (user) */
+	{0xffff, 0, 0, 0xfb, 0xaf, 0}, /* 0x48 64-bit code segment (user) */
+	{     0, 0, 0, 0x00, 0x00, 0}, /* 0x50 null */
+	{     0, 0, 0, 0x00, 0x00, 0}, /* 0x58 null */
+	{     0, 0, 0, 0x00, 0x00, 0}, /* 0x60 null */
+	{     0, 0, 0, 0x00, 0x00, 0}, /* 0x68 null */
+	{     0, 0, 0, 0x00, 0x00, 0}, /* 0x70 null */
+	{     0, 0, 0, 0x00, 0x00, 0}, /* 0x78 null */
+};
+
+struct descriptor_table_ptr gdt64_desc = {
+	.limit = sizeof(gdt64) - 1,
+	.base = (phys_addr_t)gdt64,
+};
+
+struct descriptor_table_ptr *tss_descr =
+	(struct descriptor_table_ptr *)&gdt64[GDT64_PRE_TSS_ENTRIES];
+
+tss64_t tss[MAX_TEST_CPUS] = {0};
+#endif
+
 #ifndef __x86_64__
 __attribute__((regparm(1)))
 #endif
@@ -374,7 +418,7 @@ void set_intr_alt_stack(int e, void *addr)
 
 void setup_alt_stack(void)
 {
-	tss.ist1 = (u64)intr_alt_stack + 4096;
+	tss[0].ist1 = (u64)intr_alt_stack + 4096;
 }
 #endif
 
