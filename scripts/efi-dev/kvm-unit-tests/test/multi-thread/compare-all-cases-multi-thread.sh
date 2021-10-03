@@ -3,8 +3,8 @@
 filter_uefi_output() {
     # $1 test case base name (no suffix)
 
-    origin_log="${1}.efi.uefi.log"
-    output_log="${1}.efi.uefi.filtered.log"
+    origin_log="${1}.uefi.log"
+    output_log="${1}.uefi.filtered.log"
 
     cat "${origin_log}"                         \
         | grep -v "EFI Internal Shell"          \
@@ -22,14 +22,14 @@ filter_uefi_output() {
 filter_seabios_output() {
     # $1 test case base name (no suffix)
 
-    origin_log="${1}.flat.seabios.log"
-    output_log="${1}.flat.seabios.filtered.log"
+    origin_log="${1}.seabios.log"
+    output_log="${1}.seabios.filtered.log"
 
     cat "${origin_log}"                         \
         | tr -d '\r'                            \
         | grep -v "cr3 = "                      \
         | grep -v "cr4 = "                      \
-         > "${output_log}"
+        > "${output_log}"
  }
 
 compare_case() {
@@ -39,8 +39,8 @@ compare_case() {
     filter_uefi_output "${case}"
     filter_seabios_output "${case}"
 
-    seabios_log="${case}.flat.seabios.filtered.log"
-    uefi_log="${case}.efi.uefi.filtered.log"
+    seabios_log="${case}.seabios.filtered.log"
+    uefi_log="${case}.uefi.filtered.log"
 
     mkdir -p diff_log
     diff -w "${seabios_log}" "${uefi_log}" > "diff_log/${case}.diff"
@@ -93,7 +93,7 @@ test_cases=(
 )
 
 repo_path=${repo_path:-"${HOME}/code/kvm-unit-tests"}
-log_path=${log_path:="logs/x86"}
+log_path=${log_path:="test_log/x86"}
 log_path="${repo_path}/${log_path}"
 
 pushd "${log_path}" || exit 2
