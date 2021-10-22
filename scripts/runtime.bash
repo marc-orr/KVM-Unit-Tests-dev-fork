@@ -81,6 +81,11 @@ function run()
     local check="${CHECK:-$7}"
     local accel="$8"
     local timeout="${9:-$TIMEOUT}" # unittests.cfg overrides the default
+    local run_under_efi="${10}"
+
+    if [ "$run_under_efi" == true ]; then
+        kernel=$(basename $kernel .flat)
+    fi
 
     if [ -z "$testname" ]; then
         return
@@ -127,8 +132,14 @@ function run()
     fi
 
     last_line=$(premature_failure > >(tail -1)) && {
-        print_result "SKIP" $testname "" "$last_line"
-        return 77
+        skip=true
+        if [ "${run_under_efi}" == true ] && [[ "${last_line}" =~ "Reset" ]]; then
+            skip=false
+        fi
+        if [ ${skip} == true ]; then
+            print_result "SKIP" $testname "" "$last_line"
+            return 77
+        fi
     }
 
     cmdline=$(get_cmdline $kernel)
