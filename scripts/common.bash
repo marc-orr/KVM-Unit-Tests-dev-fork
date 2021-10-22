@@ -13,7 +13,13 @@ function for_each_unittest()
 	local check
 	local accel
 	local timeout
+	local run_under_efi
 	local rematch
+
+	run_under_efi=""
+	if [[ ${TEST_DIR} != ${TEST_SUBDIR} ]]; then
+		run_under_efi=true
+	fi
 
 	exec {fd}<"$unittests"
 
@@ -21,7 +27,7 @@ function for_each_unittest()
 		if [[ "$line" =~ ^\[(.*)\]$ ]]; then
 			rematch=${BASH_REMATCH[1]}
 			if [ -n "${testname}" ]; then
-				$(arch_cmd) "$cmd" "$testname" "$groups" "$smp" "$kernel" "$opts" "$arch" "$check" "$accel" "$timeout"
+				$(arch_cmd) "$cmd" "$testname" "$groups" "$smp" "$kernel" "$opts" "$arch" "$check" "$accel" "$timeout" "$run_under_efi"
 			fi
 			testname=$rematch
 			smp=1
@@ -51,7 +57,7 @@ function for_each_unittest()
 		fi
 	done
 	if [ -n "${testname}" ]; then
-		$(arch_cmd) "$cmd" "$testname" "$groups" "$smp" "$kernel" "$opts" "$arch" "$check" "$accel" "$timeout"
+		$(arch_cmd) "$cmd" "$testname" "$groups" "$smp" "$kernel" "$opts" "$arch" "$check" "$accel" "$timeout" "$run_under_efi"
 	fi
 	exec {fd}<&-
 }
