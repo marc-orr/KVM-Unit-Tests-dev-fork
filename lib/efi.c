@@ -134,14 +134,14 @@ efi_status_t efi_main(efi_handle_t handle, efi_system_table_t *sys_tab)
 	ret = main(__argc, __argv, __environ);
 
 	/* Shutdown the guest VM */
-	efi_rs_call(reset_system, EFI_RESET_SHUTDOWN, ret, 0, NULL);
+	exit(ret);
 
 	/* Unreachable */
 	return EFI_UNSUPPORTED;
 
 efi_main_error:
 	/* Shutdown the guest with error EFI status */
-	efi_rs_call(reset_system, EFI_RESET_SHUTDOWN, status, 0, NULL);
+	exit(status & ~(1UL << (BITS_PER_LONG-1)));
 
 	/* Unreachable */
 	return EFI_UNSUPPORTED;
