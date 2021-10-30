@@ -1,5 +1,10 @@
 source config.mak
 
+function running_under_efi()
+{
+	[[ ${TARGET_EFI} == "y" ]] && echo "y" || echo ""
+}
+
 function for_each_unittest()
 {
 	local unittests="$1"
