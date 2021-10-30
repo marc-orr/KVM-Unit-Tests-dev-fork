@@ -52,7 +52,6 @@ popd || exit 2
 # run in UEFI, some test cases, e.g. `x86/pmu.c`, require more free memory. A
 # simple fix is to increase the QEMU default memory size to 256MiB so that
 # UEFI's largest allocatable memory region is large enough.
-EFI_RUN=y \
 "$TEST_DIR/run" \
 	-drive file="$EFI_UEFI",format=raw,if=pflash,readonly=on \
 	-drive file.dir="$EFI_TEST/$EFI_CASE/",file.driver=vvfat,file.rw=on,format=raw,if=virtio \
