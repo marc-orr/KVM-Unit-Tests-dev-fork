@@ -30,32 +30,20 @@ fi
 shift 1
 
 # Prepare EFI boot file system
-#   - Copy .efi file to host dir $EFI_TEST/$EFI_CASE/
+#   - Copy .efi file to host dir $EFI_TEST/$EFI_CASE/EFI/BOOT/BOOTX64.EFI
 #     This host dir will be loaded by QEMU as a FAT32 image
-#   - Make UEFI startup script that runs the .efi on boot
-mkdir -p "$EFI_TEST/$EFI_CASE/"
-if [ $EFI_CASE != "_NO_FILE_4Uhere_" ]; then
-  cp "$EFI_SRC/$EFI_CASE.efi" "$EFI_TEST/$EFI_CASE/"
-else
-  touch "$EFI_TEST/$EFI_CASE/$EFI_CASE.efi"
+#   - UEFI firmware by default loads the file EFI/BOOT/BOOTX64.EFI
+mkdir -p "$EFI_TEST/$EFI_CASE/EFI/BOOT"
+if [ "$EFI_CASE" != "_NO_FILE_4Uhere_" ]; then
+  cp "$EFI_SRC/$EFI_CASE.efi" "$EFI_TEST/$EFI_CASE/EFI/BOOT/BOOTX64.EFI"
 fi
 
-pushd "$EFI_TEST/$EFI_CASE" || exit 2
-# 'startup.nsh' is the default script executed by UEFI on boot
-# Use this script to run the test binary automatically
-if [ $EFI_CASE != "_NO_FILE_4Uhere_" ]; then
-  cat << EOF >startup.nsh
-@echo -off
-fs0:
-"$EFI_CASE.efi"
-EOF
-else
-  cat << EOF >startup.nsh
-@echo -off
-reset -s
-EOF
+# If test case name is _NO_FILE_4Uhere_, then pass a non-existing file as a
+# kernel to QEMU, to test if QEMU arguments work fine
+test_args=""
+if [ "$EFI_CASE" == "_NO_FILE_4Uhere_" ]; then
+	test_args=" -kernel $EFI_CASE"
 fi
-popd || exit 2
 
 # Run test case with 256MiB QEMU memory. QEMU default memory size is 128MiB.
 # After UEFI boot up and we call `LibMemoryMap()`, the largest consecutive
@@ -74,5 +62,6 @@ popd || exit 2
 	-net none \
 	-nographic \
 	-m 256 \
+	$test_args \
 	"$@" \
 	-smp "$EFI_SMP"
