@@ -300,28 +300,23 @@ efi_status_t setup_efi(efi_bootinfo_t *efi_bootinfo)
 	}
 
 	status = setup_amd_sev();
+	/* Continue if AMD SEV is not supported, but skip SEV-ES setup */
+	if (status == EFI_UNSUPPORTED) {
+		goto continue_setup_after_sev;
+	}
+
 	if (status != EFI_SUCCESS) {
-		switch (status) {
-		case EFI_UNSUPPORTED:
-			/* Continue if AMD SEV is not supported */
-			break;
-		default:
-			printf("Set up AMD SEV failed\n");
-			return status;
-		}
+		printf("AMD SEV setup failed, error = 0x%lx\n", status);
+		return status;
 	}
 
 	status = setup_amd_sev_es();
-	if (status != EFI_SUCCESS) {
-		switch (status) {
-		case EFI_UNSUPPORTED:
-			/* Continue if AMD SEV-ES is not supported */
-			break;
-		default:
-			printf("Set up AMD SEV-ES failed\n");
-			return status;
-		}
+	if (status != EFI_SUCCESS && status != EFI_UNSUPPORTED) {
+		printf("AMD SEV-ES setup failed, error = 0x%lx\n", status);
+		return status;
 	}
+
+continue_setup_after_sev:
 
 	reset_apic();
 	setup_gdt_tss();
