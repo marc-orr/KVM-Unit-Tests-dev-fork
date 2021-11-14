@@ -39,6 +39,18 @@ shift 1
 mkdir -p "$EFI_CASE_DIR"
 if [ "$EFI_CASE" != "_NO_FILE_4Uhere_" ]; then
 	cp "$EFI_SRC/$EFI_CASE.efi" "$EFI_CASE_BINARY"
+else
+	if ! [ -f "$EFI_CASE_BINARY" ]; then
+		cat <<EOF >$EFI_SRC/efi/dummy.c
+int main(int argc, char **argv)
+{
+	return 0;
+}
+EOF
+		make "$EFI_SRC/efi/dummy.efi"
+		cp "$EFI_SRC/efi/dummy.efi" "$EFI_CASE_BINARY"
+		rm -f $EFI_SRC/efi/dummy*
+	fi
 fi
 
 # Run test case with 256MiB QEMU memory. QEMU default memory size is 128MiB.
