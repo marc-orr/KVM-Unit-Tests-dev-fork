@@ -18,6 +18,7 @@ source config.mak
 : "${EFI_TEST:=efi-tests}"
 : "${EFI_SMP:=1}"
 : "${EFI_CASE:=$(basename $1 .efi)}"
+KUT_ROOT="${EFI_SRC}/../"
 
 if [ ! -f "$EFI_UEFI" ]; then
 	echo "UEFI firmware not found: $EFI_UEFI"
@@ -36,13 +37,16 @@ shift 1
 mkdir -p "$EFI_TEST/$EFI_CASE/EFI/BOOT"
 if [ "$EFI_CASE" != "_NO_FILE_4Uhere_" ]; then
   cp "$EFI_SRC/$EFI_CASE.efi" "$EFI_TEST/$EFI_CASE/EFI/BOOT/BOOTX64.EFI"
-fi
-
-# If test case name is _NO_FILE_4Uhere_, then pass a non-existing file as a
-# kernel to QEMU, to test if QEMU arguments work fine
-test_args=""
-if [ "$EFI_CASE" == "_NO_FILE_4Uhere_" ]; then
-	test_args=" -kernel $EFI_CASE"
+else
+  cat << EOF >$EFI_SRC/efi/dummy.c
+int main(int argc, char **argv)
+{
+	return 0;
+}
+EOF
+  make "$EFI_SRC/efi/dummy.efi"
+  cp "$EFI_SRC/efi/dummy.efi" "$EFI_TEST/$EFI_CASE/EFI/BOOT/BOOTX64.EFI"
+  rm -f $EFI_SRC/efi/dummy*
 fi
 
 # Run test case with 256MiB QEMU memory. QEMU default memory size is 128MiB.
@@ -62,6 +66,5 @@ fi
 	-net none \
 	-nographic \
 	-m 256 \
-	$test_args \
 	"$@" \
 	-smp "$EFI_SMP"

@@ -133,7 +133,7 @@ function run()
 
     last_line=$(premature_failure > >(tail -1)) && {
         skip=true
-        if [ "${running_under_efi}" ] && [[ "${last_line}" =~ "Reset" ]]; then
+        if [ "${running_under_efi}" ] && [[ "${last_line}" =~ "enabling apic" ]]; then
             skip=false
         fi
         if [ ${skip} == true ]; then
